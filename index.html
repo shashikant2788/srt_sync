@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>SRT Sync Drop Zone</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      padding: 16px;
+      background: #f4f6f8;
+    }
+
+    h1 {
+      margin-bottom: 12px;
+      font-size: 18px;
+      color: #2c3e50;
+    }
+
+    .container {
+      display: flex;
+      gap: 16px;
+      height: calc(100vh - 90px);
+    }
+
+    .panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .panel label {
+      margin-bottom: 6px;
+      font-weight: bold;
+      color: #34495e;
+    }
+
+    .dropzone {
+      flex: 1;
+      border: 2px dashed #ccd1d9;
+      border-radius: 6px;
+      background: #ffffff;
+      padding: 12px;
+      overflow-y: auto;
+      white-space: pre-wrap;      /* wrap text */
+      word-break: break-word;     /* break long lines */
+      line-height: 1.5;
+      font-size: 14px;
+      color: #2c3e50;
+    }
+
+    .dropzone.empty::before {
+      content: attr(data-placeholder);
+      color: #95a5a6;
+    }
+
+    .dropzone.dragover {
+      border-color: #3498db;
+      background: #ecf5fc;
+    }
+
+    .footer {
+      margin-top: 8px;
+      font-size: 12px;
+      color: #7f8c8d;
+    }
+
+    /* Responsive behavior */
+    @media (max-width: 768px) {
+      .container {
+        flex-direction: column;
+        height: auto;
+      }
+
+      .dropzone {
+        min-height: 40vh;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>SRT Synchronization Workspace</h1>
+
+  <div class="container">
+    <div class="panel">
+      <label>Original.srt</label>
+      <div
+        id="original"
+        class="dropzone empty"
+        data-placeholder="Put your Original.srt here"
+      ></div>
+    </div>
+
+    <div class="panel">
+      <label>Translated.srt</label>
+      <div
+        id="translated"
+        class="dropzone empty"
+        data-placeholder="Put your Translated.srt here"
+      ></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Drag & drop SRT files. Layout adapts responsively and text wraps automatically.
+  </div>
+
+  <script>
+    const original = document.getElementById("original");
+    const translated = document.getElementById("translated");
+
+    let isSyncing = false;
+
+    function syncScroll(source, target) {
+      if (isSyncing) return;
+      isSyncing = true;
+
+      const ratio =
+        source.scrollTop / (source.scrollHeight - source.clientHeight || 1);
+
+      target.scrollTop =
+        ratio * (target.scrollHeight - target.clientHeight);
+
+      isSyncing = false;
+    }
+
+    function setupDropzone(zone) {
+      zone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        zone.classList.add("dragover");
+      });
+
+      zone.addEventListener("dragleave", () => {
+        zone.classList.remove("dragover");
+      });
+
+      zone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        zone.classList.remove("dragover");
+
+        const file = e.dataTransfer.files[0];
+        if (!file || !file.name.toLowerCase().endsWith(".srt")) return;
+
+        const reader = new FileReader();
+        reader.onload = () => {
+          zone.textContent = reader.result;
+          zone.classList.remove("empty");
+        };
+        reader.readAsText(file);
+      });
+    }
+
+    setupDropzone(original);
+    setupDropzone(translated);
+
+    original.addEventListener("scroll", () =>
+      syncScroll(original, translated)
+    );
+
+    translated.addEventListener("scroll", () =>
+      syncScroll(translated, original)
+    );
+  </script>
+
+</body>
+</html>
