@@ -2,8 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>SRT Sync Drop Zone</title>
+  <title>SRT Sync Workspace</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
   <style>
     * {
@@ -18,15 +20,30 @@
     }
 
     h1 {
-      margin-bottom: 12px;
       font-size: 18px;
+      margin-bottom: 10px;
       color: #2c3e50;
+    }
+
+    .drop-area {
+      border: 2px dashed #3498db;
+      border-radius: 8px;
+      background: #ecf5fc;
+      padding: 20px;
+      text-align: center;
+      font-weight: bold;
+      color: #2c3e50;
+      margin-bottom: 16px;
+    }
+
+    .drop-area.dragover {
+      background: #d6ebfb;
     }
 
     .container {
       display: flex;
       gap: 16px;
-      height: calc(100vh - 90px);
+      height: calc(100vh - 180px);
     }
 
     .panel {
@@ -36,50 +53,38 @@
       min-width: 0;
     }
 
-    .panel label {
+    label {
       margin-bottom: 6px;
       font-weight: bold;
       color: #34495e;
     }
 
-    .dropzone {
+    .viewer {
       flex: 1;
-      border: 2px dashed #ccd1d9;
+      border: 1px solid #ccd1d9;
       border-radius: 6px;
       background: #ffffff;
       padding: 12px;
       overflow-y: auto;
-      white-space: pre-wrap;      /* wrap text */
-      word-break: break-word;     /* break long lines */
+      white-space: pre-wrap;
+      word-break: break-word;
       line-height: 1.5;
       font-size: 14px;
       color: #2c3e50;
     }
 
-    .dropzone.empty::before {
+    .viewer.empty::before {
       content: attr(data-placeholder);
       color: #95a5a6;
     }
 
-    .dropzone.dragover {
-      border-color: #3498db;
-      background: #ecf5fc;
-    }
-
-    .footer {
-      margin-top: 8px;
-      font-size: 12px;
-      color: #7f8c8d;
-    }
-
-    /* Responsive behavior */
     @media (max-width: 768px) {
       .container {
         flex-direction: column;
         height: auto;
       }
 
-      .dropzone {
+      .viewer {
         min-height: 40vh;
       }
     }
@@ -88,88 +93,90 @@
 
 <body>
 
-  <h1>SRT Synchronization Workspace</h1>
+<h1>SRT Synchronization Workspace</h1>
 
-  <div class="container">
-    <div class="panel">
-      <label>Original.srt</label>
-      <div
-        id="original"
-        class="dropzone empty"
-        data-placeholder="Put your Original.srt here"
-      ></div>
-    </div>
+<div id="dropArea" class="drop-area">
+  Drop ZIP file here
+</div>
 
-    <div class="panel">
-      <label>Translated.srt</label>
-      <div
-        id="translated"
-        class="dropzone empty"
-        data-placeholder="Put your Translated.srt here"
-      ></div>
-    </div>
+<div class="container">
+  <div class="panel">
+    <label>Original.srt</label>
+    <div
+      id="original"
+      class="viewer empty"
+      data-placeholder="Waiting for original.srt"
+    ></div>
   </div>
 
-  <div class="footer">
-    Drag & drop SRT files. Layout adapts responsively and text wraps automatically.
+  <div class="panel">
+    <label>Translated.srt</label>
+    <div
+      id="translated"
+      class="viewer empty"
+      data-placeholder="Waiting for translated.srt"
+    ></div>
   </div>
+</div>
 
-  <script>
-    const original = document.getElementById("original");
-    const translated = document.getElementById("translated");
+<script>
+  const dropArea = document.getElementById("dropArea");
+  const original = document.getElementById("original");
+  const translated = document.getElementById("translated");
 
-    let isSyncing = false;
+  let isSyncing = false;
 
-    function syncScroll(source, target) {
-      if (isSyncing) return;
-      isSyncing = true;
+  function syncScroll(source, target) {
+    if (isSyncing) return;
+    isSyncing = true;
 
-      const ratio =
-        source.scrollTop / (source.scrollHeight - source.clientHeight || 1);
+    const ratio =
+      source.scrollTop / (source.scrollHeight - source.clientHeight || 1);
 
-      target.scrollTop =
-        ratio * (target.scrollHeight - target.clientHeight);
+    target.scrollTop =
+      ratio * (target.scrollHeight - target.clientHeight);
 
-      isSyncing = false;
+    isSyncing = false;
+  }
+
+  original.addEventListener("scroll", () => syncScroll(original, translated));
+  translated.addEventListener("scroll", () => syncScroll(translated, original));
+
+  async function handleZip(file) {
+    const zip = await JSZip.loadAsync(file);
+
+    if (zip.file("original.srt")) {
+      const text = await zip.file("original.srt").async("text");
+      original.textContent = text;
+      original.classList.remove("empty");
     }
 
-    function setupDropzone(zone) {
-      zone.addEventListener("dragover", (e) => {
-        e.preventDefault();
-        zone.classList.add("dragover");
-      });
-
-      zone.addEventListener("dragleave", () => {
-        zone.classList.remove("dragover");
-      });
-
-      zone.addEventListener("drop", (e) => {
-        e.preventDefault();
-        zone.classList.remove("dragover");
-
-        const file = e.dataTransfer.files[0];
-        if (!file || !file.name.toLowerCase().endsWith(".srt")) return;
-
-        const reader = new FileReader();
-        reader.onload = () => {
-          zone.textContent = reader.result;
-          zone.classList.remove("empty");
-        };
-        reader.readAsText(file);
-      });
+    if (zip.file("translated.srt")) {
+      const text = await zip.file("translated.srt").async("text");
+      translated.textContent = text;
+      translated.classList.remove("empty");
     }
+  }
 
-    setupDropzone(original);
-    setupDropzone(translated);
+  dropArea.addEventListener("dragover", e => {
+    e.preventDefault();
+    dropArea.classList.add("dragover");
+  });
 
-    original.addEventListener("scroll", () =>
-      syncScroll(original, translated)
-    );
+  dropArea.addEventListener("dragleave", () => {
+    dropArea.classList.remove("dragover");
+  });
 
-    translated.addEventListener("scroll", () =>
-      syncScroll(translated, original)
-    );
-  </script>
+  dropArea.addEventListener("drop", async e => {
+    e.preventDefault();
+    dropArea.classList.remove("dragover");
+
+    const file = e.dataTransfer.files[0];
+    if (!file || !file.name.toLowerCase().endsWith(".zip")) return;
+
+    await handleZip(file);
+  });
+</script>
 
 </body>
 </html>
