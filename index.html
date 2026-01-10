@@ -1,180 +1,232 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>SRT Sync Workspace</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta charset="UTF-8" />
+<title>SRT Table View</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
-  <style>
-    * {
-      box-sizing: border-box;
-      font-family: Arial, Helvetica, sans-serif;
-    }
+<style>
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: #f4f6f8;
+    padding: 16px;
+  }
 
-    body {
-      margin: 0;
-      padding: 16px;
-      background: #f4f6f8;
-    }
+  /* Header */
+  .app-header {
+    margin-bottom: 18px;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, #1f3c88, #3498db);
+    border-radius: 10px;
+    color: #ffffff;
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.15);
+  }
 
-    h1 {
-      font-size: 18px;
-      margin-bottom: 10px;
-      color: #2c3e50;
-    }
+  .app-header h1 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
 
-    .drop-area {
-      border: 2px dashed #3498db;
-      border-radius: 8px;
-      background: #ecf5fc;
-      padding: 20px;
-      text-align: center;
-      font-weight: bold;
-      color: #2c3e50;
-      margin-bottom: 16px;
-    }
+  .app-header h1 span {
+    font-weight: 700;
+    color: #ffeb3b;
+  }
 
-    .drop-area.dragover {
-      background: #d6ebfb;
-    }
+  /* Drop + Upload Row */
+  .zip-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 16px;
+  }
 
-    .container {
-      display: flex;
-      gap: 16px;
-      height: calc(100vh - 180px);
-    }
+  .drop-zone {
+    flex: 1;
+    border: 2px dashed #3498db;
+    background: #ecf5fc;
+    padding: 20px;
+    text-align: center;
+    font-weight: bold;
+    border-radius: 8px;
+  }
 
-    .panel {
-      flex: 1;
-      display: flex;
+  .drop-zone.dragover {
+    background: #d6ebfb;
+  }
+
+  .upload-btn {
+    padding: 14px 18px;
+    font-weight: bold;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    color: #ffffff;
+    background: linear-gradient(135deg, #27ae60, #2ecc71);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    white-space: nowrap;
+  }
+
+  .upload-btn:hover {
+    opacity: 0.9;
+  }
+
+  /* Table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #ffffff;
+  }
+
+  th, td {
+    border: 1px solid #ccd1d9;
+    padding: 10px;
+    vertical-align: top;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  th {
+    background: #f0f2f5;
+    text-align: left;
+  }
+
+  td.timecode {
+    width: 220px;
+    font-family: monospace;
+    background: #fafbfc;
+  }
+
+  @media (max-width: 768px) {
+    .zip-row {
       flex-direction: column;
-      min-width: 0;
+      align-items: stretch;
     }
 
-    label {
-      margin-bottom: 6px;
-      font-weight: bold;
-      color: #34495e;
+    .upload-btn {
+      width: 100%;
     }
-
-    .viewer {
-      flex: 1;
-      border: 1px solid #ccd1d9;
-      border-radius: 6px;
-      background: #ffffff;
-      padding: 12px;
-      overflow-y: auto;
-      white-space: pre-wrap;
-      word-break: break-word;
-      line-height: 1.5;
-      font-size: 14px;
-      color: #2c3e50;
-    }
-
-    .viewer.empty::before {
-      content: attr(data-placeholder);
-      color: #95a5a6;
-    }
-
-    @media (max-width: 768px) {
-      .container {
-        flex-direction: column;
-        height: auto;
-      }
-
-      .viewer {
-        min-height: 40vh;
-      }
-    }
-  </style>
+  }
+</style>
 </head>
 
 <body>
 
-<h1>SRT Synchronization Workspace</h1>
+<header class="app-header">
+  <h1>Proudly Made by <span>Shashikant Vishwakarma</span></h1>
+</header>
 
-<div id="dropArea" class="drop-area">
-  Drop ZIP file here
-</div>
-
-<div class="container">
-  <div class="panel">
-    <label>Original.srt</label>
-    <div
-      id="original"
-      class="viewer empty"
-      data-placeholder="Waiting for original.srt"
-    ></div>
+<div class="zip-row">
+  <div id="dropZone" class="drop-zone">
+    Drop ZIP here
   </div>
 
-  <div class="panel">
-    <label>Translated.srt</label>
-    <div
-      id="translated"
-      class="viewer empty"
-      data-placeholder="Waiting for translated.srt"
-    ></div>
-  </div>
+  <button id="uploadBtn" class="upload-btn">
+    Upload ZIP
+  </button>
+
+  <input type="file" id="zipInput" accept=".zip" hidden />
 </div>
+
+<table>
+  <thead>
+    <tr>
+      <th>Timecode</th>
+      <th>Original.srt</th>
+      <th>Translated.srt</th>
+    </tr>
+  </thead>
+  <tbody id="tableBody"></tbody>
+</table>
 
 <script>
-  const dropArea = document.getElementById("dropArea");
-  const original = document.getElementById("original");
-  const translated = document.getElementById("translated");
+  const dropZone = document.getElementById("dropZone");
+  const uploadBtn = document.getElementById("uploadBtn");
+  const zipInput = document.getElementById("zipInput");
+  const tableBody = document.getElementById("tableBody");
 
-  let isSyncing = false;
-
-  function syncScroll(source, target) {
-    if (isSyncing) return;
-    isSyncing = true;
-
-    const ratio =
-      source.scrollTop / (source.scrollHeight - source.clientHeight || 1);
-
-    target.scrollTop =
-      ratio * (target.scrollHeight - target.clientHeight);
-
-    isSyncing = false;
+  function parseSRT(text) {
+    return text
+      .trim()
+      .split(/\n\s*\n/)
+      .map(block => {
+        const lines = block.split("\n");
+        return {
+          timecode: lines[1] || "",
+          text: lines.slice(2).join("\n")
+        };
+      });
   }
 
-  original.addEventListener("scroll", () => syncScroll(original, translated));
-  translated.addEventListener("scroll", () => syncScroll(translated, original));
-
-  async function handleZip(file) {
+  async function loadZip(file) {
     const zip = await JSZip.loadAsync(file);
 
-    if (zip.file("original.srt")) {
-      const text = await zip.file("original.srt").async("text");
-      original.textContent = text;
-      original.classList.remove("empty");
-    }
+    const originalText = zip.file("original.srt")
+      ? await zip.file("original.srt").async("text")
+      : "";
 
-    if (zip.file("translated.srt")) {
-      const text = await zip.file("translated.srt").async("text");
-      translated.textContent = text;
-      translated.classList.remove("empty");
+    const translatedText = zip.file("translated.srt")
+      ? await zip.file("translated.srt").async("text")
+      : "";
+
+    const originalBlocks = parseSRT(originalText);
+    const translatedBlocks = parseSRT(translatedText);
+
+    const max = Math.max(originalBlocks.length, translatedBlocks.length);
+    tableBody.innerHTML = "";
+
+    for (let i = 0; i < max; i++) {
+      const row = document.createElement("tr");
+
+      const time = document.createElement("td");
+      time.className = "timecode";
+      time.textContent =
+        originalBlocks[i]?.timecode ||
+        translatedBlocks[i]?.timecode ||
+        "";
+
+      const left = document.createElement("td");
+      left.textContent = originalBlocks[i]?.text || "";
+
+      const right = document.createElement("td");
+      right.textContent = translatedBlocks[i]?.text || "";
+
+      row.appendChild(time);
+      row.appendChild(left);
+      row.appendChild(right);
+      tableBody.appendChild(row);
     }
   }
 
-  dropArea.addEventListener("dragover", e => {
+  dropZone.addEventListener("dragover", e => {
     e.preventDefault();
-    dropArea.classList.add("dragover");
+    dropZone.classList.add("dragover");
   });
 
-  dropArea.addEventListener("dragleave", () => {
-    dropArea.classList.remove("dragover");
+  dropZone.addEventListener("dragleave", () => {
+    dropZone.classList.remove("dragover");
   });
 
-  dropArea.addEventListener("drop", async e => {
+  dropZone.addEventListener("drop", async e => {
     e.preventDefault();
-    dropArea.classList.remove("dragover");
-
+    dropZone.classList.remove("dragover");
     const file = e.dataTransfer.files[0];
     if (!file || !file.name.toLowerCase().endsWith(".zip")) return;
+    await loadZip(file);
+  });
 
-    await handleZip(file);
+  uploadBtn.addEventListener("click", () => {
+    zipInput.click();
+  });
+
+  zipInput.addEventListener("change", async e => {
+    const file = e.target.files[0];
+    if (!file || !file.name.toLowerCase().endsWith(".zip")) return;
+    await loadZip(file);
+    zipInput.value = "";
   });
 </script>
 
